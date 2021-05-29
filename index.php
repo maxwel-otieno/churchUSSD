@@ -18,17 +18,6 @@ $USSDCODE = rawurldecode($_GET["USSDCODE"]);
 $MSISDN = $_GET["MSISDN"];
 $INPUT= rawurldecode($_GET["INPUT"]);
 
-if(file_exists("user_input_file")){
-    $INPUTArray = changeToArray(readFiles("user_input_file"));
-    array_push($INPUTArray, $INPUT);
-    // $INPUTArray[sizeof($INPUTArray)] = $INPUT;
-    writeFiles("user_input_file", changeToString($INPUTArray));
-}else{
-    writeFiles("user_input_file", $INPUT);
-    $INPUTArray = changeToArray(readFiles("user_input_file"));
-    // array_push($INPUTArray, $INPUT);
-}
-
 if (file_exists("session_files")){
     $sessionDataString = readFiles("session_files");
 }else{
@@ -37,6 +26,16 @@ if (file_exists("session_files")){
     writeFiles("session_files", changeToString($sessionData));
 }
 
+// if(file_exists("user_input_file")){
+//     $INPUTArray = changeToArray(readFiles("user_input_file"));
+//     array_push($INPUTArray, $INPUT);
+//     // $INPUTArray[sizeof($INPUTArray)] = $INPUT;
+//     writeFiles("user_input_file", changeToString($INPUTArray));
+// }else{
+//     writeFiles("user_input_file", $INPUT);
+//     $INPUTArray = changeToArray(readFiles("user_input_file"));
+//     // array_push($INPUTArray, $INPUT);
+// }
 
 //check if the member exists
 $query = "SELECT * FROM church_member WHERE phone= ?";
@@ -45,8 +44,18 @@ $stmt->execute([$MSISDN]);
 $row = $stmt->fetch(PDO::FETCH_OBJ);
 // $row1 = $stmt->fetch();
 
-$nextLevel = nextLevel();
-$prevLevel = prevLevel();
+// $nextLevel = nextLevel();
+// $prevLevel = prevLevel();
+
+//NEW CODE
+
+
+
+
+
+
+
+
 if ($stmt->rowCount() >= 1){
     // echo "User found";
 

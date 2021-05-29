@@ -392,7 +392,6 @@ if ($TEMPLEVEL == 2002) {
     }
 }
 
-
 //save session
 $mx = explode('|', $message);
 $nextTempLevel = $mx[0];
@@ -405,7 +404,7 @@ if($mx[4] == 'end'){
 else{
     $con = 'CON';
 }
- 
+
 $newExtra = $mx[5];
 
 saveArray($fileName, $nextTempLevel, 3);
