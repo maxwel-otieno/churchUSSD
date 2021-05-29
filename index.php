@@ -72,7 +72,11 @@ if ($stmt->rowCount() >= 1){
         $count = 1;
     }
 
-    if ($INPUT === '0'){        
+    if ($INPUT === ''){        
+        // $sessionData = [$SESSIONID, $USSDCODE, $MSISDN, 1, $INPUT, '0'];
+        // writeFiles("session_files", changeToString($sessionData));
+        echo "INPUT is empty";
+    }else if ($INPUT === '0'){        
         $sessionData = [$SESSIONID, $USSDCODE, $MSISDN, 1, $INPUT, '0'];
         writeFiles("session_files", changeToString($sessionData));
     }else if ($INPUT === '00'){          
@@ -80,8 +84,7 @@ if ($stmt->rowCount() >= 1){
         // $sessionData = [$SESSIONID, $USSDCODE, $MSISDN, 3, $INPUT];
         // writeFiles("session_files", changeToString($sessionData));
         exit();
-    }else{
-    
+    }else{    
         // $sessionDataString = implode('|', $sessionData);
         if ($nextLevel == 1){ 
             $curLevel = 1;    
@@ -98,8 +101,9 @@ if ($stmt->rowCount() >= 1){
                 echo "<br>";
             }
 
-            echo "0: Back <br>";
-            echo "00: Exit <br>";
+            // use \n for linebreak instea dof <br>
+            echo "\n0: Back <br>";
+            echo "\n00: Exit <br>";
 
             // var_dump($services);
 
