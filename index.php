@@ -76,9 +76,9 @@ if ($nextLevel === '1'){
         $churchName = $row_church->churchName;
 
         $sessionDataArray[4] = 4;
-        echo "Choose one from the options below.\n<br>
-                1 Book Service\n<br>
-                2 Update Settings\n<br>";
+        echo "Welcome to $churchName service system:\n <br>
+              1 Book Service\n<br>
+              2 Update Settings\n<br>";
         writeFiles("session_files", changeToString($sessionDataArray));
     }else{
         echo "You are not registered to any church <br>";
@@ -93,18 +93,18 @@ if ($nextLevel === '4'){
     $churchID = $sessionDataArray[5]; 
 
     $stmt_services = $pdo->prepare("SELECT * FROM church_service WHERE churchID = ?");
-        $stmt_services->execute([$churchID]);
-        $row_service = $stmt_services->fetchAll(PDO::FETCH_OBJ);
+    $stmt_services->execute([$churchID]);
+    $row_service = $stmt_services->fetchAll(PDO::FETCH_OBJ);
 
-        $service = [];
-        $count = 1;
+    $service = [];
+    $count = 1;
 
     if ($INPUT == 1){
-        echo "You have chosen to book a service<br><br>";
+        echo "Select a service you would wish to attend<br><br>";
 
         //Query the database to get the user details and church services
         foreach($row_service as $serve){
-            array_push($service, "$count: ".$serve->serviceName." - ".date("D, M", strtotime($serve->serviceDate)));
+            array_push($service, "$count: ".$serve->serviceName." - ".$serve->serviceTheme." - ".date("D, M", strtotime($serve->serviceDate)));
             $count++;
         }
         // print_r($service);
@@ -112,6 +112,11 @@ if ($nextLevel === '4'){
             echo $service[$i]."<br>";
         }
 
+        // $sessionDataArray = [$SESSIONID, $MSISDN, $USSDCODE, $INPUT, 8, $service];
+        $sessionDataArray[5] = changeToString($service);
+        $sessionDataArray[4] = 8;
+        // var_dump($sessionDataArray);
+        writeFiles("session_files", changeToString($sessionDataArray));
     }else if($INPUT == 2){
         echo "Select which data you would like to edit.<br>";
         echo "1: First Name <br>2: Last Name<br>3: email Address<br>4: Church Name<br>";
@@ -142,6 +147,19 @@ if ($nextLevel === '6'){
 
 if ($nextLevel === '7'){
     echo "You selected $INPUT";
+}
+if ($nextLevel === '8'){
+    $stmt = $pdo->prepare("SELECT * FROM church_info WHERE churchID = ?");
+    $stmt->execute([$GLOBALS['row_service']->churchID]);
+    $row = $stmt->fetch(PDO::FETCH_OBJ);
+
+    // for ($i=0, $i<sizeof($service); $i++){
+    //     echo $service[$INPUT-1];
+    // }
+    echo $row->churchName;
+    $services = array_slice($sessionDataArray, 5);
+    // var_dump($services);
+    echo $services[$INPUT-1];
 }
 
 
