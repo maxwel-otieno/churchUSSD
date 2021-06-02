@@ -89,6 +89,7 @@ if ($nextLevel === '1'){
         // writeFiles("session_files", changeToString($sessionDataArray));
         echo "END You are not registered for this service.\n<br>";
     }
+    exit();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------
@@ -141,7 +142,8 @@ if ($nextLevel === '4'){
     else{
         echo "Wrong Input<br>";
     }
-    // echo "<br>I am level $nextLevel. Welcome.<br>";
+    // echo "<br>I am level $nextLevel. Welcome.<br>";    
+    exit();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------
@@ -169,9 +171,14 @@ if ($nextLevel === '4'){
 
 // --------------------------------------------------------------------------------------------------------------------------------
 
-// if ($nextLevel === '7'){
-//     echo "You selected $INPUT";
-// }
+if ($nextLevel === '7'){
+    // echo "You selected $INPUT";
+    if ($INPUT === "1"){
+        echo "CON Enter your new First Name";
+        // $query = "UPDATE church_member SET firstName=?";
+    }
+    exit();
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------
 
@@ -198,6 +205,7 @@ if ($nextLevel === '8'){
     $sessionDataArray[4] = 9;
     // echo $services[$INPUT-1];
     writeFiles("session_files", changeToString($sessionDataArray));
+    exit();
     }
 }
 
@@ -205,13 +213,13 @@ if ($nextLevel === '8'){
 
 if ($nextLevel === '9'){
     if ($INPUT === "0"){
-        echo "You have cancelled the booking";
+        echo "END You have cancelled the booking";
         exit();
     }else if($INPUT === "1"){
-        echo "You have successfully booked for the service.\n<br>
+        echo "END You have successfully booked for the service.\n<br>
               Your reservation ID is $INPUT".mt_rand();
     }else{
-        echo "Wrong Input<br>";
+        echo "CON Wrong Input<br>";
         $sessionDataArray[4] = 8;
         writeFiles("session_files", changeToString($sessionDataArray));
         // exit();
