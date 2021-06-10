@@ -77,7 +77,7 @@ if ($nextLevel === '1'){
         $userID =$row->userID;
 
         $sessionDataArray[5] = $churchID;
-        $sessionDataArray[10] = $userID;
+        $sessionDataArray[6] = $userID;
         // echo $churchID."<br>";
 
         // echo "The user exists";
@@ -142,7 +142,7 @@ if ($nextLevel == '4'){
 
         // $sessionDataArray = [$SESSIONID, $MSISDN, $USSDCODE, $INPUT, 8, $service];
         $serviceDataString = changeToString($serviceID);
-        $sessionDataArray[6] = $serviceDataString;
+        $sessionDataArray[7] = $serviceDataString;
         // var_dump($serviceDataString);
         echo "\n";
         // print_r($sessionDataArray);
@@ -160,7 +160,9 @@ if ($nextLevel == '4'){
     //     echo "END Kusumbua tu!!";
     //     exit();
     // }
-    else{
+    else if($lastInput == 0){
+        echo "END Thank You for booking with us";
+    }else{
         echo "END Wrong Input\n";
     }
     // echo "<br>I am level $nextLevel. Welcome.<br>";    
@@ -209,10 +211,12 @@ if ($nextLevel === '8'){
     // $inputArray = explode("*", $INPUT);
     // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
 
-    $services = array_slice($sessionDataArray, 6);
+    $services = array_slice($sessionDataArray, 7);
     if (!in_array($lastInput, $services)){
-        echo "END Wrong Input\n";
-        exit();
+        // echo "END Wrong Input\n";
+        echo "CON You have entered the wrong Input\n 1. Back\n 0. Exit ";
+        $sessionDataArray[4] = 4;
+        writeFiles($fileName, changeToString($sessionDataArray));
     }else{
     // echo "<br>";
     //churchID
@@ -228,10 +232,14 @@ if ($nextLevel === '8'){
     echo "1: Confirm\n0: Cancel";
 
     $sessionDataArray[4] = 9;
+
+    //store the service ID in the session file
+    $sessionDataArray[7] =$lastInput;
+    array_splice($sessionDataArray, 7, 100, $lastInput);
     // echo $services[$INPUT-1];
     writeFiles($fileName, changeToString($sessionDataArray));
-    exit();
     }
+    exit();
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------
@@ -244,14 +252,30 @@ if ($nextLevel === '9'){
         echo "END You have cancelled the booking\n";
         exit();
     }else if($lastInput === "1"){
-        echo "END You have successfully booked for the service.\nYour reservation ID is ".mt_rand()."\n";
+        $rev_ID = mt_rand();
+        echo "END You have successfully booked for the service.\nYour reservation ID is $rev_ID\n";
+
+        //get the user data
+        $stmt_user = $pdo->prepare("SELECT * FROM church_member WHERE userID = ?");
+        $stmt_user->execute([$sessionDataArray[6]]);
+        $row_usr_data = $stmt_user->fetch(PDO::FETCH_OBJ);
+
+        $memberEmail = $row_usr_data->email;
+        $memberPhone = $row_usr_data->phone;
+        $memberName = $row_usr_data->firstName;
+
+        //Update the reservation table
+        $stmt_res = $pdo->prepare("INSERT INTO service_reservation (`serviceID`, `cust_rev_ID`, `churchID`, `reservationTime`, `memberName`, `memberPhone`, `memberEmail`) VALUES(?, ?, ?, NOW(), ?, ?, ?)");
+        $stmt_res->execute([$sessionDataArray[7], $rev_ID, $sessionDataArray[5], $memberName, $memberPhone, $memberEmail]);
     }else{
-        echo "CON Wrong Input\n";
-        $sessionDataArray[4] = 8;
+        echo "CON You have entered the wrong Input\n 1. Continue booking\n 0. Exit ";
+        $sessionDataArray[4] = 4;
         writeFiles($fileName, changeToString($sessionDataArray));
         // exit();
     }
 }
+
+// --------------------------------------------------------------------------------------------------------------------------
 
 if ($nextLevel === '10'){
     // echo "END Thank you $lastInput";
@@ -265,7 +289,7 @@ if ($nextLevel === '10'){
     exit();
 }
 
-
+// ------------------------------------------------------------------------------------------------------------------------
 
 
 
