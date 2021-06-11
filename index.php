@@ -1,16 +1,6 @@
 <?php
 require 'fxnfile.php';
 
-$dbname = 'church_booking';
-$dbuser = 'root';
-$pass = '';
-$host = 'localhost';
-
-//Connect to the databse
-$dsn = "mysql:dbhost = ".$host.";dbname=".$dbname;
-$pdo = new PDO($dsn, $dbuser, $pass);
-// $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
-
 //Get the variables from the USSD gateway
 $SESSIONID = $_GET["SESSIONID"];
 $USSDCODE = rawurldecode($_GET["USSDCODE"]);
@@ -67,12 +57,14 @@ $sessionDataArray[3] = $lastInput;
 
 if ($nextLevel === '1'){
     //check if the member exists
-    $query = "SELECT * FROM church_member WHERE phone= ?";
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([$MSISDN]);
-    $row = $stmt->fetch(PDO::FETCH_OBJ);
+    // $query = "SELECT * FROM church_member WHERE phone= ?";
+    // $stmt = $pdo->prepare($query);
+    // $stmt->execute([$MSISDN]);
+    // $row = $stmt->fetch(PDO::FETCH_OBJ);
+    $row = fetchDB('church_member', 'phone', $MSISDN)[0];
+    $count = fetchDB('church_member', 'phone', $MSISDN)[1];
 
-    if ($stmt->rowCount() > 0){
+    if ($count > 0){
         $churchID = $row->churchID;
         $userID =$row->userID;
 
@@ -82,14 +74,15 @@ if ($nextLevel === '1'){
 
         // echo "The user exists";
         //Query the database to get the user's church info
-        $stmt_church = $pdo->prepare("SELECT * FROM church_info WHERE churchID = $churchID");
-        $stmt_church->execute();
-        $row_church = $stmt_church->fetch(PDO::FETCH_OBJ);
+        // $stmt_church = $pdo->prepare("SELECT * FROM church_info WHERE churchID = $churchID");
+        // $stmt_church->execute();
+        // $row_church = $stmt_church->fetch(PDO::FETCH_OBJ);
+        $row_church = fetchDB('church_info', 'churchID', $churchID)[0];
 
         $churchName = $row_church->churchName;
         $userName = $row->firstName." ".$row->lastName;
 
-        $sessionDataArray[4] = 4;
+        $sessionDataArray[4] = 2;
         echo "CON Welcome $userName to $churchName service system:\n1: Book Service\n2: Update Settings\n";
         writeFiles($fileName, changeToString($sessionDataArray));
     }else{
@@ -104,17 +97,13 @@ if ($nextLevel === '1'){
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------
-if ($nextLevel == '4'){
+if ($nextLevel == '2'){
     // $inputArray = explode("*", $INPUT);
     // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
     // $sessionDataArray[3] = $lastInput;
 
     $churchID = $sessionDataArray[5]; 
-    // $sessionDataArray[3] = 1;
-
-    $stmt_services = $pdo->prepare("SELECT * FROM church_service WHERE churchID = ?");
-    $stmt_services->execute([$churchID]);
-    $row_service = $stmt_services->fetchAll(PDO::FETCH_OBJ);
+    $row_service = fetchAllDB('church_service', 'churchID', $churchID)[0];
 
     $service = [];
     $serviceID = [];
@@ -146,14 +135,14 @@ if ($nextLevel == '4'){
         // var_dump($serviceDataString);
         echo "\n";
         // print_r($sessionDataArray);
-        $sessionDataArray[4] = 8;
+        $sessionDataArray[4] = 3;
         // var_dump($sessionDataArray);
         writeFiles($fileName, changeToString($sessionDataArray));
 
-    }else if($lastInput == 2){
+    }else if($lastInput == 2 && ($sessionDataArray[100] == NULL)){
         echo "CON Select which data you would like to edit.\n";
-        echo "1: First Name \n2: Last Name\n3: email Address\n4: Church Name\n";
-        $sessionDataArray[4] = 7;
+        echo "1: First Name\n2: Last Name\n3: email Address\n";
+        $sessionDataArray[4] = 4;
         writeFiles($fileName, changeToString($sessionDataArray));
     }
     // else if($INPUT == 978){
@@ -166,6 +155,204 @@ if ($nextLevel == '4'){
         echo "END Wrong Input\n";
     }
     // echo "<br>I am level $nextLevel. Welcome.<br>";    
+    exit();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------
+
+if ($nextLevel === '3'){
+    // $inputArray = explode("*", $INPUT);
+    // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
+
+    $services = array_slice($sessionDataArray, 7);
+    if (!in_array($lastInput, $services)){
+        // echo "END Wrong Input\n";
+        echo "CON You have entered the wrong Input\n1: Back\n0: Exit ";
+        $sessionDataArray[4] = 2;
+        $sessionDataArray[100] =1;
+        writeFiles($fileName, changeToString($sessionDataArray));
+    }else{
+    // echo "<br>";
+    //churchID
+    // echo $sessionData[5]."<br>";
+    // var_dump($services);
+
+    // $stmt_service = $pdo->prepare("SELECT * FROM church_service WHERE serviceID = ?");
+    // $stmt_service->execute([$lastInput]);
+    // $row_service = $stmt_service->fetch(PDO::FETCH_OBJ);
+
+    $row_service = fetchDB('church_service', 'serviceID', $lastInput)[0];
+    // var_dump($row_service);
+
+    echo "CON confirm service booking: \n";
+    echo $row_service->serviceName." - ".$row_service->serviceTheme."\n";
+    echo "1: Confirm\n0: Cancel";
+
+    $sessionDataArray[4] = 9;
+
+    //store the service ID in the session file
+    $sessionDataArray[7] =$lastInput;
+    array_splice($sessionDataArray, 7, 100, $lastInput);
+    // echo $services[$INPUT-1];
+    writeFiles($fileName, changeToString($sessionDataArray));
+    }
+    exit();
+}
+
+// -------------------------------------------------------------------------------------------------------------------------
+
+if ($nextLevel === '4'){
+    //UserID = $sessionDataArray[6]
+    //get user data
+    // $stmt =$pdo->prepare("SELECT * FROM church_member WHERE userID = ?");
+    // $stmt->execute([$sessionDataArray[6]]);
+    // $row = $stmt->fetch(PDO::FETCH_OBJ);
+
+    $row = fetchDB('church_member', 'userID', $sessionDataArray[6])[0];
+
+    if ($lastInput === "1"){
+        echo "CON Your current First Name is $row->firstName\n";
+        echo "Enter your new First Name";
+
+        $sessionDataArray[4] = 10;
+        writeFiles($fileName, changeToString($sessionDataArray));
+    }else if ($lastInput === "2"){
+        echo "CON Your current Last Name is $row->lastName\n";
+        echo "Enter your new Last Name";
+
+        $sessionDataArray[4] = 11;
+        writeFiles($fileName, changeToString($sessionDataArray));
+    }else if ($lastInput === "3"){
+        echo "CON Your current email is $row->email\n";
+        echo "Enter your new email Address";
+
+        $sessionDataArray[4] = 12;
+        writeFiles($fileName, changeToString($sessionDataArray));
+    }else if( $lastInput == 0){
+        echo "END Updates made successfully";
+    }else if($lastInput == 00){        
+        echo "END Thank You for booking with us";
+    }
+    exit();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------
+
+if ($nextLevel === '9'){
+    // $inputArray = explode("*", $INPUT);
+    // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
+
+    if ($lastInput === "0"){
+        echo "END You have cancelled the booking\n";
+        exit();
+    }else if($lastInput === "1"){
+        $rev_ID = mt_rand();
+        echo "END You have successfully booked for the service.\nYour reservation ID is $rev_ID\n";
+
+        //get the user data
+        // $stmt_user = $pdo->prepare("SELECT * FROM church_member WHERE userID = ?");
+        // $stmt_user->execute([$sessionDataArray[6]]);
+        // $row_usr_data = $stmt_user->fetch(PDO::FETCH_OBJ);
+
+        $row_usr_data = fetchDB('church_member', 'userID', $sessionDataArray[6])[0];
+
+        $memberEmail = $row_usr_data->email;
+        $memberPhone = $row_usr_data->phone;
+        $memberName = $row_usr_data->firstName;
+
+        //Update the reservation table
+        $stmt_res = $pdo->prepare("INSERT INTO service_reservation (`serviceID`, `cust_rev_ID`, `churchID`, `reservationTime`, `memberName`, `memberPhone`, `memberEmail`) VALUES(?, ?, ?, NOW(), ?, ?, ?)");
+        $stmt_res->execute([$sessionDataArray[7], $rev_ID, $sessionDataArray[5], $memberName, $memberPhone, $memberEmail]);
+    }else{
+        echo "CON You have entered the wrong Input\n1: Continue booking\n0: Exit ";
+        $sessionDataArray[4] = 2;
+        writeFiles($fileName, changeToString($sessionDataArray));
+        // exit();
+    }
+}
+
+// --------------------------------------------------------------------------------------------------------------------------
+
+if ($nextLevel === '10'){
+    if (!is_string($lastInput)){
+        echo "CON Wrong input. \n Name should be letters only\n\n2:Back \n0:Exit";
+        $sessionDataArray[4] = 2;
+        writeFiles($fileName, changeToString($sessionDataArray));
+    }else{
+        $stmt_upd_fName = $pdo->prepare("UPDATE church_member SET firstName=? WHERE userID=?");
+        $stmt_upd_fName->execute([$lastInput, $sessionDataArray[6]]);
+    
+        if ($stmt_upd_fName){
+            echo "CON First Name Updated Succesfully\n1: Book a service\n2: Continue Updating\n0: Exit";
+            $sessionDataArray[4] = 2;
+            writeFiles($fileName, changeToString($sessionDataArray));
+        }else{
+            echo "END Failed to update first name";
+        }
+        // $sessionDataArray[4] = 11;
+        // writeFiles($fileName, changeToString($sessionDataArray));
+    }
+    exit();
+}
+
+// ------------------------------------------------------------------------------------------------------------------------
+
+if ($nextLevel === '11'){
+    if (!is_string($lastInput)){
+        echo "CON Wrong input. \n Name should be letters only\n\n2: Back \n0:Exit";
+        $sessionDataArray[4] = 2;
+        writeFiles($fileName, changeToString($sessionDataArray));
+    }else{
+        $stmt_upd_lName = $pdo->prepare("UPDATE church_member SET lastName=? WHERE userID=?");
+        $stmt_upd_lName->execute([$lastInput, $sessionDataArray[6]]);
+    
+        if ($stmt_upd_lName){
+            echo "CON Last Name Updated Succesfully\n1: Book a service\n2: Continue Updating\n0: Exit";
+            $sessionDataArray[4] = 2;
+            writeFiles($fileName, changeToString($sessionDataArray));
+        }else{
+            echo "END Failed to update your Last Name";
+        }
+        // $sessionDataArray[4] = 11;
+        // writeFiles($fileName, changeToString($sessionDataArray));
+    }
+    exit();
+}
+// ----------------------------------------------------------------------------------------------------------------------------
+if ($nextLevel === '12'){
+    if (!is_string($lastInput)){
+        echo "CON Wrong input. \n Name should be letters only\n\n2: Back \n0:Exit";
+        $sessionDataArray[4] = 2;
+        writeFiles($fileName, changeToString($sessionDataArray));
+    }else{
+        $stmt_upd_email = $pdo->prepare("UPDATE church_member SET email=? WHERE userID=?");
+        $stmt_upd_email->execute([$lastInput, $sessionDataArray[6]]);
+    
+        if ($stmt_upd_email){
+            $userEmail = test_input($lastInput);
+
+            if (!empty($lastInput)) {
+                // check if e-mail address is well-formed      
+                if (filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {                
+                    echo "CON Your email has been changed\n1: Book a service\n 2: Continue Updating\n  0: Exit";
+                    $sessionDataArray[4] = 2;
+                    writeFiles($fileName, changeToString($sessionDataArray));
+                }else{
+                    echo "CON Wrong email format\n Use a valid email address";
+                    $sessionDataArray[4] = 12;
+                    writeFiles($fileName, changeToString($sessionDataArray));
+                }
+            }else{
+                echo "CON Email cannot be empty\n4: Re-enter email address \n0: Exit";
+                $sessionDataArray[4] = 4;
+                writeFiles($fileName, changeToString($sessionDataArray));
+            }
+        }else{
+            echo "END Failed to update your Email";
+        }
+        // $sessionDataArray[4] = 11;
+        // writeFiles($fileName, changeToString($sessionDataArray));
+    }
     exit();
 }
 
@@ -193,104 +380,6 @@ if ($nextLevel == '4'){
 // }
 
 // --------------------------------------------------------------------------------------------------------------------------------
-
-if ($nextLevel === '7'){
-    // echo "You selected $INPUT";
-    if ($lastInput === "1"){
-        echo "CON Enter your new First Name";
-        // $query = "UPDATE church_member SET firstName=?";
-        $sessionDataArray[4] = 10;
-        writeFiles($fileName, changeToString($sessionDataArray));
-    }
-    exit();
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------
-
-if ($nextLevel === '8'){
-    // $inputArray = explode("*", $INPUT);
-    // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
-
-    $services = array_slice($sessionDataArray, 7);
-    if (!in_array($lastInput, $services)){
-        // echo "END Wrong Input\n";
-        echo "CON You have entered the wrong Input\n 1. Back\n 0. Exit ";
-        $sessionDataArray[4] = 4;
-        writeFiles($fileName, changeToString($sessionDataArray));
-    }else{
-    // echo "<br>";
-    //churchID
-    // echo $sessionData[5]."<br>";
-    // var_dump($services);
-
-    $stmt_service = $pdo->prepare("SELECT * FROM church_service WHERE serviceID = ?");
-    $stmt_service->execute([$lastInput]);
-    $row_service = $stmt_service->fetch(PDO::FETCH_OBJ);
-
-    echo "CON confirm service booking: \n";
-    echo $row_service->serviceName." - ".$row_service->serviceTheme."\n";
-    echo "1: Confirm\n0: Cancel";
-
-    $sessionDataArray[4] = 9;
-
-    //store the service ID in the session file
-    $sessionDataArray[7] =$lastInput;
-    array_splice($sessionDataArray, 7, 100, $lastInput);
-    // echo $services[$INPUT-1];
-    writeFiles($fileName, changeToString($sessionDataArray));
-    }
-    exit();
-}
-
-// --------------------------------------------------------------------------------------------------------------------------------
-
-if ($nextLevel === '9'){
-    // $inputArray = explode("*", $INPUT);
-    // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
-
-    if ($lastInput === "0"){
-        echo "END You have cancelled the booking\n";
-        exit();
-    }else if($lastInput === "1"){
-        $rev_ID = mt_rand();
-        echo "END You have successfully booked for the service.\nYour reservation ID is $rev_ID\n";
-
-        //get the user data
-        $stmt_user = $pdo->prepare("SELECT * FROM church_member WHERE userID = ?");
-        $stmt_user->execute([$sessionDataArray[6]]);
-        $row_usr_data = $stmt_user->fetch(PDO::FETCH_OBJ);
-
-        $memberEmail = $row_usr_data->email;
-        $memberPhone = $row_usr_data->phone;
-        $memberName = $row_usr_data->firstName;
-
-        //Update the reservation table
-        $stmt_res = $pdo->prepare("INSERT INTO service_reservation (`serviceID`, `cust_rev_ID`, `churchID`, `reservationTime`, `memberName`, `memberPhone`, `memberEmail`) VALUES(?, ?, ?, NOW(), ?, ?, ?)");
-        $stmt_res->execute([$sessionDataArray[7], $rev_ID, $sessionDataArray[5], $memberName, $memberPhone, $memberEmail]);
-    }else{
-        echo "CON You have entered the wrong Input\n 1. Continue booking\n 0. Exit ";
-        $sessionDataArray[4] = 4;
-        writeFiles($fileName, changeToString($sessionDataArray));
-        // exit();
-    }
-}
-
-// --------------------------------------------------------------------------------------------------------------------------
-
-if ($nextLevel === '10'){
-    // echo "END Thank you $lastInput";
-    $stmt_upd_fName = $pdo->prepare("UPDATE church_member SET firstName=$lastInput WHERE userID=?");
-    $stmt_upd_fName->execute([$sessionDataArray[10]]);
-    
-    echo "END first Name updated successfully";
-
-    // $sessionDataArray[4] = 11;
-    // writeFiles($fileName, changeToString($sessionDataArray));
-    exit();
-}
-
-// ------------------------------------------------------------------------------------------------------------------------
-
 
 
 // if ($stmt->rowCount() >= 1){
