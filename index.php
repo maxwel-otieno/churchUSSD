@@ -176,7 +176,7 @@ if ($nextLevel === '3'){
     // var_dump($row_service);
 
     echo "CON confirm service booking: \n";
-    echo $row_service->serviceName." - ".date("D, d M", strtotime($row_service->serviceDate))."\n";
+    echo $row_service->serviceName." - ".date("D, d M-H:i a", strtotime($row_service->serviceDate))."\n";
     echo "1: Confirm\n0: Cancel";
 
     $sessionDataArray[4] = 9;
