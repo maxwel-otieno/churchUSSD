@@ -51,6 +51,11 @@ function prevLevel(){
     $prevLevel = $sessionDataArray[5];
 }
 
+// function set_session_data($fileName, $num){
+//     $sessionDataArray[4] = $num;
+//     writeFiles($fileName, changeToString($sessionDataArray));
+//  }
+
 function fetchDB($table, $columnName, $ID){
     $stmt = $GLOBALS['pdo']->prepare("SELECT * FROM $table WHERE $columnName = ?");
     $stmt->execute([$ID]);
