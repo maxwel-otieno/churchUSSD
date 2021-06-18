@@ -61,11 +61,11 @@ function fetchDB($table, $columnName, $ID){
     $stmt->execute([$ID]);
     $row = $stmt->fetch(PDO::FETCH_OBJ);
 
-    $rowCount = $stmt->rowCOunt();
+    $rowCount = $stmt->rowCount();
     $dbData = [$row, $rowCount];
     return $dbData;
 
-    return $row;
+    // return $row;
 }
 
 //Fetch all from the DB

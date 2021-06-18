@@ -70,16 +70,13 @@ if ($nextLevel === '1'){
 
         // echo "The user exists";
         //Query the database to get the user's church info
-        // $stmt_church = $pdo->prepare("SELECT * FROM church_info WHERE churchID = $churchID");
-        // $stmt_church->execute();
-        // $row_church = $stmt_church->fetch(PDO::FETCH_OBJ);
         $row_church = fetchDB('church_info', 'churchID', $churchID)[0];
 
         $churchName = $row_church->churchName;
         $userName = $row->firstName." ".$row->lastName;
 
         $sessionDataArray[4] = 2;
-        echo "CON Welcome $userName to $churchName service system:\n1: Book Service\n2: Update Settings\n";
+        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3: My Services";
         writeFiles($fileName, changeToString($sessionDataArray));
     }else{
         // echo "You are not registered to any church <br>";
@@ -118,9 +115,8 @@ if ($nextLevel == '2'){
         }
         // print_r($service);
         for ($i=0; $i<sizeof($service); $i++){
-            echo $service[$i][0].": ".$service[$i][1]." - ".$service[$i][2]."\n";
+            echo ($i+1).": ".$service[$i][1]." - ".$service[$i][2]."\n";
         }
-
         // var_dump($service);
         // var_dump($service[2]);
         // echo $serviceID."<br>";
@@ -137,19 +133,18 @@ if ($nextLevel == '2'){
 
     }else if($lastInput == 2){
         echo "CON Select which data you would like to edit.\n";
-        echo "1: First Name\n2: Last Name\n3: email Address\n";
+        echo "1: First Name\n2: Last Name\n3: email Address\n0:Back";
         $sessionDataArray[4] = 4;
         writeFiles($fileName, changeToString($sessionDataArray));
-    }
-    // else if($INPUT == 978){
-    //     echo "END Kusumbua tu!!";
-    //     exit();
-    // }
-    else if($lastInput === '0'){
+    }else if($lastInput == 3){
+        echo "CON 1: View My Services\n2: Delete a service\n0: Back\n";
+        $sessionDataArray[4] = 5;
+        writeFiles($fileName, changeToString($sessionDataArray));
+    }    else if($lastInput === '0'){
         echo "END Thank You for booking with us";
     }else{
         echo "CON Wrong Input\n";
-        echo "\n1: Book Service\n2: Update Settings\n";
+        echo "\n1: Book Service\n2: Update Settings\n3:My Services\n";
 
         $sessionDataArray[4] = 2;
         writeFiles($fileName, changeToString($sessionDataArray));
@@ -164,15 +159,23 @@ if ($nextLevel === '3'){
     // $inputArray = explode("*", $INPUT);
     // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
 
-    $services = array_slice($sessionDataArray, 7);
-    if (!in_array($lastInput, $services)){
+    $servicesArray = array_slice($sessionDataArray, 7);
+
+    // print_r($servicesArray);
+    $services=array();
+    for ($a=0; $a<sizeof($servicesArray); $a++){
+        array_push($services, ($a+1));
+    }
+
+   if (!in_array($lastInput, $services)){
         // echo "END Wrong Input\n";
-        echo "CON You have entered the wrong Input\n1: Back\n0: Exit ";
+        echo "CON Wrong input.\nThere's no such service\n1: Back\n0: Exit ";
         $sessionDataArray[4] = 2;
         // $sessionDataArray[100] =1;
         writeFiles($fileName, changeToString($sessionDataArray));
     }else{
-    $row_service = fetchDB('church_service', 'serviceID', $lastInput)[0];
+    // $booked_serviceID = 
+    $row_service = fetchDB('church_service', 'serviceID', $servicesArray[$lastInput-1])[0];
     // var_dump($row_service);
 
     echo "CON confirm service booking: \n";
@@ -182,8 +185,10 @@ if ($nextLevel === '3'){
     $sessionDataArray[4] = 9;
 
     //store the service ID in the session file
-    $sessionDataArray[7] =$lastInput;
-    array_splice($sessionDataArray, 7, 100, $lastInput);
+    $sessionDataArray[7] =$servicesArray[$lastInput-1];
+
+    //use array_splice to delete elements in a certain range and replace with the serviceID
+    array_splice($sessionDataArray, 7, 100, $servicesArray[$lastInput-1]);
     // echo $services[$INPUT-1];
     writeFiles($fileName, changeToString($sessionDataArray));
     }
@@ -194,14 +199,21 @@ if ($nextLevel === '3'){
 
 if ($nextLevel === '4'){
     //UserID = $sessionDataArray[6]
-    //get user data
-    // $stmt =$pdo->prepare("SELECT * FROM church_member WHERE userID = ?");
-    // $stmt->execute([$sessionDataArray[6]]);
-    // $row = $stmt->fetch(PDO::FETCH_OBJ);
+    $row = fetchDB('church_member', 'phone', $MSISDN)[0];
+    $churchID = $row->churchID;
+    $row_church = fetchDB('church_info', 'churchID', $churchID)[0];
 
+    $churchName = $row_church->churchName;
+    $userName = $row->firstName." ".$row->lastName;
+
+    //get user data;
     $row = fetchDB('church_member', 'userID', $sessionDataArray[6])[0];
 
-    if ($lastInput === "1"){
+    if ($lastInput === "0"){
+        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3:My Services\n";
+        $sessionDataArray[4] = 2;
+        writeFiles($fileName, changeToString($sessionDataArray));
+    }else if ($lastInput === "1"){
         echo "CON Your current First Name is $row->firstName\n";
         echo "Enter your new First Name";
         $sessionDataArray[4] = 10;
@@ -233,6 +245,89 @@ if ($nextLevel === '4'){
     }
     exit();
 }
+// ------------------------------------------------------------------------------------------------------------------------
+
+if ($nextLevel === '5'){
+    if ($lastInput == 1){
+        $reservation4Usr = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[0];
+        $reservation4UsrCount = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[1];
+
+        if ($reservation4UsrCount <= 0){
+            echo "CON You have not booked for any service yet\n1: Book Service\n2: Update Settings\n";
+            $sessionDataArray[4] = 2;
+            writeFiles($fileName, changeToString($sessionDataArray));
+        }else{
+            echo "CON My Services\n";
+            $myServicesID = [];
+            foreach($reservation4Usr as $reserve){
+                // $n_services = [$reserve->serviceName, date("D, M", strtotime($serve->serviceDate))];
+                array_push($myServicesID, $reserve->serviceID);
+                // print_r($myServicesID);
+                // array_push($serviceID, $serve->serviceID);
+                // $count++;
+            }
+            
+            $myServices = array();
+            for ($i=0; $i<count($myServicesID); $i++){
+                $service4Usr = fetchDB('church_service', 'serviceID', $myServicesID[$i])[0];
+                $n_service = [$service4Usr->serviceName, date("D, d M-H:i a", strtotime($service4Usr->serviceDate))];
+                array_push($myServices, $n_service);
+                // array_push($serviceID, $serve->serviceID);
+                // $count++;
+            }
+            // print_r($service);
+            for ($i=0; $i<sizeof($myServices); $i++){
+                echo ($i+1).": ".$myServices[$i][0]." - ".$myServices[$i][1]."\n";
+            }
+
+            // echo "100: Delete a Service\n200: Home\n0: Exit";
+        }
+    }else if($lastInput == 2){
+        $reservation4Usr = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[0];
+        $reservation4UsrCount = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[1];
+
+        if ($reservation4UsrCount <= 0){
+            echo "CON You have not booked for any service yet\n1: Book Service\n2: Update Settings\n";
+            $sessionDataArray[4] = 2;
+            writeFiles($fileName, changeToString($sessionDataArray));
+        }else{
+            echo "CON Select the Service to Delete\n";
+            $myServicesID = [];
+            foreach($reservation4Usr as $reserve){
+                // $n_services = [$reserve->serviceName, date("D, M", strtotime($serve->serviceDate))];
+                array_push($myServicesID, $reserve->serviceID);
+                // print_r($myServicesID);
+                // array_push($serviceID, $serve->serviceID);
+                // $count++;
+            }
+            
+            $myServices = array();
+            for ($i=0; $i<count($myServicesID); $i++){
+                $service4Usr = fetchDB('church_service', 'serviceID', $myServicesID[$i])[0];
+                $n_service = [$service4Usr->serviceName, date("D, d M-H:i a", strtotime($service4Usr->serviceDate))];
+                array_push($myServices, $n_service);
+                // array_push($serviceID, $serve->serviceID);
+                // $count++;
+            }
+            // print_r($service);
+            for ($i=0; $i<sizeof($myServices); $i++){
+                echo ($i+1).": ".$myServices[$i][0]." - ".$myServices[$i][1]."\n";
+            }
+        }
+        $sessionDataArray[4] = 6;
+        writeFiles($fileName, changeToString($sessionDataArray));        
+    }else if ($lastInput == 0){
+        echo "CON You will exit from the system";
+    }else{
+        echo "CON wrong Input";
+    }
+}
+
+// -------------------------------------------------------------------------------------------------------------------------
+
+if ($nextLevel === '6'){
+    echo "CON You selected $lastInput\n";
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------
 
@@ -241,40 +336,52 @@ if ($nextLevel === '9'){
     // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
 
     if ($lastInput === "0"){
-        echo "END You have cancelled the booking\n";
+        echo "END Thank You for booking with us\n\nYou have cancelled the booking\n";
         exit();
     }else if($lastInput === "1"){
         $rev_ID = mt_rand();
 
-        //get the user data
-        $row_usr_data = fetchDB('church_member', 'userID', $sessionDataArray[6])[0];
+        //check if the serice exists
+        $query_rev = "SELECT * FROM service_reservation WHERE serviceID = ? AND userID = ?";
+        $stmt_rev = $pdo->prepare($query_rev);
+        $stmt_rev->execute([$sessionDataArray[7] , $sessionDataArray[6]]);
+        $row = $stmt_rev->fetchAll();
 
-        //Check if the reservation alresy exists
-        $row_serv_res = fetchAllDB('service_reservation', 1, 1)[0];
-
-        $memberEmail = $row_usr_data->email;
-        $memberPhone = $row_usr_data->phone;
-        $memberName = $row_usr_data->firstName;
-
-
-        $countErr = array();
-        //check if a member exists.
-        foreach($row_serv_res as $a){
-            if ($a->serviceID == $sessionDataArray[7] && ($row_usr_data->phone) == $memberPhone){
-                array_push($countErr, 0);
-            }else{
-                array_push($countErr, 1);
-            }
-        }
-        if (in_array(0, $countErr) == TRUE){
-            echo "END You have already booked for this service";
-        }else{        
-            //Update the reservation table
+        if ($stmt_rev->rowCount() <= 0){
             $stmt_res = $pdo->prepare("INSERT INTO service_reservation (`serviceID`, `cust_rev_ID`, `reservationTime`, `userID`) VALUES(?, ?, NOW(), ?)");
             $stmt_res->execute([$sessionDataArray[7], $rev_ID, $sessionDataArray[6]]);
             
             echo "END You have successfully booked for the service.\nYour reservation ID is $rev_ID\n";
+        }else{            
+            echo "END You have already booked for this service";
         }
+
+        //get the user data
+        // $row_usr_data = fetchDB('church_member', 'userID', $sessionDataArray[6])[0];
+
+        // //Check if the reservation alresy exists
+        // $row_serv_res = fetchAllDB('service_reservation', 1, 1)[0];
+
+        // $memberEmail = $row_usr_data->email;
+        // $memberPhone = $row_usr_data->phone;
+        // $memberName = $row_usr_data->firstName;
+
+
+        // $countErr = array();
+        // //check if a member exists.
+        // foreach($row_serv_res as $a){
+        //     if ($a->serviceID == $sessionDataArray[7] && ($row_usr_data->phone) == $MSISDN){
+        //         array_push($countErr, 0);
+        //     }else{
+        //         array_push($countErr, 1);
+        //     }
+        // }
+        // if (in_array(0, $countErr) == TRUE){
+        //     echo "END You have already booked for this service";
+        // }else{        
+        //     //Update the reservation table
+            
+        // }
     }else{
         echo "CON You have entered the wrong Input\n1: Continue booking\n0: Exit ";
         $sessionDataArray[4] = 2;
