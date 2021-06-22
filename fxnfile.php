@@ -78,3 +78,8 @@ function fetchAllDB($table, $columnName, $ID){
     $dbData = [$row, $rowCount];
     return $dbData;
 }
+
+function deleteDB($table, $column, $ID){
+    $stmt = $GLOBALS['pdo']->prepare("DELETE FROM $table WHERE $column = ?");
+    $stmt->execute([$ID]);
+}

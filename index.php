@@ -48,36 +48,35 @@ $sessionDataArray = changeToArray(readFiles($fileName));
 // $sessionDataArray = changeToArray($sessionData);
 $nextLevel = $sessionDataArray[4];
 
-
+//Get the last input by the user
 $inputArray = explode("*", $INPUT);
 $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
 $sessionDataArray[3] = $lastInput;
+
 
 // --------------------------------------------------------------------------------------------------------------------------------
 
 if ($nextLevel === '1'){
     //check if the member exists
     $row = fetchDB('church_member', 'phone', $MSISDN)[0];
+
+    // $row = fetchDB('church_member', 'phone', $MSISDN)[0];
     $count = fetchDB('church_member', 'phone', $MSISDN)[1];
 
     if ($count > 0){
         $churchID = $row->churchID;
+        $row_church = fetchDB('church_info', 'churchID', $churchID)[0];
         $userID =$row->userID;
 
         $sessionDataArray[5] = $churchID;
         $sessionDataArray[6] = $userID;
-        // echo $churchID."<br>";
-
-        // echo "The user exists";
-        //Query the database to get the user's church info
-        $row_church = fetchDB('church_info', 'churchID', $churchID)[0];
 
         $churchName = $row_church->churchName;
         $userName = $row->firstName." ".$row->lastName;
 
         $sessionDataArray[4] = 2;
-        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3: My Services";
-        writeFiles($fileName, changeToString($sessionDataArray));
+        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3: My Services\n0: Exit\n";
+        // writeFiles($fileName, changeToString($sessionDataArray));
     }else{
         // echo "You are not registered to any church <br>";
         // echo "Enter your name to Continue with the registration. E.g. Maxwel Oduor:<br>";
@@ -86,6 +85,7 @@ if ($nextLevel === '1'){
         // writeFiles("session_files", changeToString($sessionDataArray));
         echo "END You are not registered for this service.\n";
     }
+    writeFiles($fileName, changeToString($sessionDataArray));
     exit();
 }
 
@@ -108,15 +108,16 @@ if ($nextLevel == '2'){
 
         //Query the database to get the user details and church services
         foreach($row_service as $serve){
-            $n_service = [$serve->serviceID, $serve->serviceName, date("D, M", strtotime($serve->serviceDate))];
+            $n_service = [$serve->serviceID, $serve->serviceName, date("d M", strtotime($serve->serviceDate)), date("h:i a", strtotime($serve->time_from))];
             array_push($service, $n_service);
             array_push($serviceID, $serve->serviceID);
             // $count++;
         }
         // print_r($service);
         for ($i=0; $i<sizeof($service); $i++){
-            echo ($i+1).": ".$service[$i][1]." - ".$service[$i][2]."\n";
+            echo ($i+1).": ".$service[$i][1]."- ".$service[$i][2].", ".$service[$i][3]."\n";
         }
+        echo "00: Home";
         // var_dump($service);
         // var_dump($service[2]);
         // echo $serviceID."<br>";
@@ -129,27 +130,28 @@ if ($nextLevel == '2'){
         // print_r($sessionDataArray);
         $sessionDataArray[4] = 3;
         // var_dump($sessionDataArray);
-        writeFiles($fileName, changeToString($sessionDataArray));
+        // writeFiles($fileName, changeToString($sessionDataArray));
 
     }else if($lastInput == 2){
         echo "CON Select which data you would like to edit.\n";
-        echo "1: First Name\n2: Last Name\n3: email Address\n0:Back";
+        echo "1: First Name\n2: Last Name\n3: Email Address\n0: Back";
         $sessionDataArray[4] = 4;
-        writeFiles($fileName, changeToString($sessionDataArray));
+        // writeFiles($fileName, changeToString($sessionDataArray));
     }else if($lastInput == 3){
         echo "CON 1: View My Services\n2: Delete a service\n0: Back\n";
         $sessionDataArray[4] = 5;
-        writeFiles($fileName, changeToString($sessionDataArray));
-    }    else if($lastInput === '0'){
+        // writeFiles($fileName, changeToString($sessionDataArray));
+    }else if($lastInput === '0'){
         echo "END Thank You for booking with us";
     }else{
         echo "CON Wrong Input\n";
-        echo "\n1: Book Service\n2: Update Settings\n3:My Services\n";
+        echo "1: Book Service\n2: Update Settings\n3: My Services\n0: Exit\n";
 
         $sessionDataArray[4] = 2;
-        writeFiles($fileName, changeToString($sessionDataArray));
+        // writeFiles($fileName, changeToString($sessionDataArray));
     }
-    // echo "<br>I am level $nextLevel. Welcome.<br>";    
+    // echo "<br>I am level $nextLevel. Welcome.<br>";   
+    writeFiles($fileName, changeToString($sessionDataArray)); 
     exit();
 }
 
@@ -158,6 +160,9 @@ if ($nextLevel == '2'){
 if ($nextLevel === '3'){
     // $inputArray = explode("*", $INPUT);
     // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
+    $row = fetchDB('church_member', 'phone', $MSISDN)[0];
+    $churchID = $row->churchID;
+    $row_church = fetchDB('church_info', 'churchID', $churchID)[0];
 
     $servicesArray = array_slice($sessionDataArray, 7);
 
@@ -167,31 +172,37 @@ if ($nextLevel === '3'){
         array_push($services, ($a+1));
     }
 
-   if (!in_array($lastInput, $services)){
+   if ($lastInput == 00){        
+        $churchName = $row_church->churchName;
+        $userName = $row->firstName." ".$row->lastName;
+
+        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3: My Services\n0: Exit\n";
+        $sessionDataArray[4] = 2;
+   }else if (!in_array($lastInput, $services)){
         // echo "END Wrong Input\n";
-        echo "CON Wrong input.\nThere's no such service\n1: Back\n0: Exit ";
+        echo "CON Wrong input\nThere's no such service\n1: Back\n0: Exit ";
         $sessionDataArray[4] = 2;
         // $sessionDataArray[100] =1;
-        writeFiles($fileName, changeToString($sessionDataArray));
+        // writeFiles($fileName, changeToString($sessionDataArray));
     }else{
     // $booked_serviceID = 
     $row_service = fetchDB('church_service', 'serviceID', $servicesArray[$lastInput-1])[0];
     // var_dump($row_service);
 
     echo "CON confirm service booking: \n";
-    echo $row_service->serviceName." - ".date("D, d M-H:i a", strtotime($row_service->serviceDate))."\n";
+    echo $row_service->serviceName."- ".date("d M", strtotime($row_service->serviceDate)).",".date("H a", strtotime($row_service->time_from))."\n";
     echo "1: Confirm\n0: Cancel";
 
     $sessionDataArray[4] = 9;
-
     //store the service ID in the session file
     $sessionDataArray[7] =$servicesArray[$lastInput-1];
 
     //use array_splice to delete elements in a certain range and replace with the serviceID
     array_splice($sessionDataArray, 7, 100, $servicesArray[$lastInput-1]);
     // echo $services[$INPUT-1];
-    writeFiles($fileName, changeToString($sessionDataArray));
+    // writeFiles($fileName, changeToString($sessionDataArray));
     }
+    writeFiles($fileName, changeToString($sessionDataArray));
     exit();
 }
 
@@ -199,38 +210,30 @@ if ($nextLevel === '3'){
 
 if ($nextLevel === '4'){
     //UserID = $sessionDataArray[6]
-    $row = fetchDB('church_member', 'phone', $MSISDN)[0];
-    $churchID = $row->churchID;
-    $row_church = fetchDB('church_info', 'churchID', $churchID)[0];
-
     $churchName = $row_church->churchName;
     $userName = $row->firstName." ".$row->lastName;
 
-    //get user data;
-    $row = fetchDB('church_member', 'userID', $sessionDataArray[6])[0];
-
     if ($lastInput === "0"){
-        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3:My Services\n";
+        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3: My Services\n0: Exit\n";
         $sessionDataArray[4] = 2;
-        writeFiles($fileName, changeToString($sessionDataArray));
+        // writeFiles($fileName, changeToString($sessionDataArray));
     }else if ($lastInput === "1"){
         echo "CON Your current First Name is $row->firstName\n";
         echo "Enter your new First Name";
         $sessionDataArray[4] = 10;
-        writeFiles($fileName, changeToString($sessionDataArray));
+        // writeFiles($fileName, changeToString($sessionDataArray));
 
     }else if ($lastInput === "2"){
         echo "CON Your current Last Name is $row->lastName\n";
         echo "Enter your new Last Name";
         $sessionDataArray[4] = 11;
-        writeFiles($fileName, changeToString($sessionDataArray));
-
+        // writeFiles($fileName, changeToString($sessionDataArray));
     }else if ($lastInput === "3"){
         echo "CON Your current email is $row->email\n";
         echo "Enter your new email Address";
         $sessionDataArray[4] = 12;
-        writeFiles($fileName, changeToString($sessionDataArray));
-    }else if( $lastInput == 00){
+        // writeFiles($fileName, changeToString($sessionDataArray));
+    }else if($lastInput === "00"){
         echo "END Thank You for booking with us";
     }
     // else if($lastInput == 00){        
@@ -238,106 +241,178 @@ if ($nextLevel === '4'){
     // }
     else{
         echo "CON Wrong Input\nSelect which data you would like to edit.\n";
-        echo "1: First Name\n2: Last Name\n3: email Address\n";        
-
+        echo "1: First Name\n2: Last Name\n3: email Address\n";
+        
         $sessionDataArray[4] = 4;
-        writeFiles($fileName, changeToString($sessionDataArray));
+        // writeFiles($fileName, changeToString($sessionDataArray));
     }
+    writeFiles($fileName, changeToString($sessionDataArray));
     exit();
 }
 // ------------------------------------------------------------------------------------------------------------------------
 
 if ($nextLevel === '5'){
-    if ($lastInput == 1){
-        $reservation4Usr = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[0];
-        $reservation4UsrCount = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[1];
+    $reservation4Usr = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[0];
+    $reservation4UsrCount = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[1];
 
+    if ($lastInput == 1){
         if ($reservation4UsrCount <= 0){
             echo "CON You have not booked for any service yet\n1: Book Service\n2: Update Settings\n";
             $sessionDataArray[4] = 2;
-            writeFiles($fileName, changeToString($sessionDataArray));
+            // writeFiles($fileName, changeToString($sessionDataArray));
         }else{
             echo "CON My Services\n";
             $myServicesID = [];
             foreach($reservation4Usr as $reserve){
                 // $n_services = [$reserve->serviceName, date("D, M", strtotime($serve->serviceDate))];
                 array_push($myServicesID, $reserve->serviceID);
-                // print_r($myServicesID);
-                // array_push($serviceID, $serve->serviceID);
-                // $count++;
             }
             
             $myServices = array();
             for ($i=0; $i<count($myServicesID); $i++){
                 $service4Usr = fetchDB('church_service', 'serviceID', $myServicesID[$i])[0];
-                $n_service = [$service4Usr->serviceName, date("D, d M-H:i a", strtotime($service4Usr->serviceDate))];
+                $n_service = [$service4Usr->serviceName, date("d M", strtotime($service4Usr->serviceDate)), date("h:i a", strtotime($service4Usr->time_from))];
                 array_push($myServices, $n_service);
                 // array_push($serviceID, $serve->serviceID);
                 // $count++;
             }
             // print_r($service);
             for ($i=0; $i<sizeof($myServices); $i++){
-                echo ($i+1).": ".$myServices[$i][0]." - ".$myServices[$i][1]."\n";
+                echo $myServices[$i][0]." - ".$myServices[$i][1].", ".$myServices[$i][2]."\n";
             }
-
-            // echo "100: Delete a Service\n200: Home\n0: Exit";
+            echo "0: Back";
+            $sessionDataArray[4] = 8;
         }
+        writeFiles($fileName, changeToString($sessionDataArray));
     }else if($lastInput == 2){
-        $reservation4Usr = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[0];
-        $reservation4UsrCount = fetchAllDB('service_reservation', 'userID', $sessionDataArray[6])[1];
-
         if ($reservation4UsrCount <= 0){
             echo "CON You have not booked for any service yet\n1: Book Service\n2: Update Settings\n";
             $sessionDataArray[4] = 2;
-            writeFiles($fileName, changeToString($sessionDataArray));
+            // writeFiles($fileName, changeToString($sessionDataArray));
         }else{
             echo "CON Select the Service to Delete\n";
             $myServicesID = [];
             foreach($reservation4Usr as $reserve){
                 // $n_services = [$reserve->serviceName, date("D, M", strtotime($serve->serviceDate))];
                 array_push($myServicesID, $reserve->serviceID);
-                // print_r($myServicesID);
-                // array_push($serviceID, $serve->serviceID);
-                // $count++;
             }
             
             $myServices = array();
             for ($i=0; $i<count($myServicesID); $i++){
                 $service4Usr = fetchDB('church_service', 'serviceID', $myServicesID[$i])[0];
-                $n_service = [$service4Usr->serviceName, date("D, d M-H:i a", strtotime($service4Usr->serviceDate))];
+                $n_service = [$service4Usr->serviceName, date("d M", strtotime($service4Usr->serviceDate)), date("h:i a", strtotime($service4Usr->time_from))];
                 array_push($myServices, $n_service);
                 // array_push($serviceID, $serve->serviceID);
                 // $count++;
             }
             // print_r($service);
             for ($i=0; $i<sizeof($myServices); $i++){
-                echo ($i+1).": ".$myServices[$i][0]." - ".$myServices[$i][1]."\n";
+                echo ($i+1).": ".$myServices[$i][0]." - ".$myServices[$i][1].", ".$myServices[$i][2]."\n";
             }
-        }
-        $sessionDataArray[4] = 6;
+            echo "0: Back";
+
+            $myServiceIDString = changeToString($myServicesID);
+            array_push($sessionDataArray, $myServiceIDString);
+            $sessionDataArray[4] = 6;
+        // print_r($sessionDataArray);
+        }        
         writeFiles($fileName, changeToString($sessionDataArray));        
     }else if ($lastInput == 0){
-        echo "CON You will exit from the system";
+        $row = fetchDB('church_member', 'phone', $MSISDN)[0];
+        $churchID = $row->churchID;
+        $row_church = fetchDB('church_info', 'churchID', $churchID)[0];
+
+        $churchName = $row_church->churchName;
+        $userName = $row->firstName." ".$row->lastName;
+        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3: My Services\n";
+        $sessionDataArray[4] = 2;
+        // echo "CON You will exit from the system";
     }else{
         echo "CON wrong Input";
-    }
+    }    
+    writeFiles($fileName, changeToString($sessionDataArray));
+    exit();     
 }
 
 // -------------------------------------------------------------------------------------------------------------------------
 
 if ($nextLevel === '6'){
-    echo "CON You selected $lastInput\n";
-}
+    $services = array();
+    for ($a=7; $a<sizeof($sessionDataArray); $a++){
+        array_push($services, $sessionDataArray[$a]);
+    }
+    // $servicesNo = count($services);
+    // print_r($servicesNo);
 
-// --------------------------------------------------------------------------------------------------------------------------------
+    if ($lastInput == 0){
+        echo "CON 1: View My Services\n2: Delete a service\n0: Back\n";
+        $sessionDataArray[4] = 5;
+    }else if($lastInput<=sizeof($services) && $lastInput>0){
+        $serviceInfo = fetchDB('church_service', 'serviceID', $services[$lastInput-1])[0];
+        echo "CON Delete ".$serviceInfo->serviceName." - ".$serviceInfo->serviceTheme."\n1: Delete\n0: Back\n";
+
+        //use array_splice to delete elements in a certain range and replace with the serviceID
+        array_splice($sessionDataArray, 7, 100, $services[$lastInput-1]);
+        // print_r($sessionDataArray);
+        $sessionDataArray[4] = 7;
+        // echo "CON The correct service has been selected";
+    }else{
+        echo "END The service does not exist";
+    }
+        writeFiles($fileName, changeToString($sessionDataArray));
+        exit();
+    // switch($lastInput){
+    //     case '1':
+    //         echo "END You selected ".$services[1];
+    //         break;
+    //     case '2':
+    //         echo "END You selected ".$services[2];
+    //         break;
+    //     case '3':
+    //         echo "END You selected ".$services[3];
+    //         break;
+    //     default:
+    //         echo "Wrong Input";
+    //         break;
+    // }
+    // echo "CON You selected $lastInput\n";
+}
+// -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if ($nextLevel == 7){
+    if ($lastInput == 0){
+        echo "CON 1: View My Services\n2: Delete a service\n0: Back\n";
+        $sessionDataArray[4] = 5;
+    }else if ($lastInput == 1){
+        //Delete the selected service from the DB
+        $stmt_delete = $pdo->prepare("DELETE FROM service_reservation WHERE userID=? AND serviceID=?");
+        $stmt_delete->execute([$sessionDataArray[6], $sessionDataArray[7]]);
+        // echo "END You have elected to delete the service with an ID of ".$sessionDataArray[7];
+        echo "END Service Deleted successfully";
+    }else {
+        echo "CON Wrong input\n1: View My Services\n2: Delete a service\n0: Back\n";
+        $sessionDataArray[4] = 5;
+    }
+    writeFiles($fileName, changeToString($sessionDataArray));
+    exit();
+}
+// -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+if ($nextLevel == 8){
+    if ($lastInput != 0){
+        echo "END Wrong input\nThank you for booking with us";
+    }else{
+        echo "CON 1: View My Services\n2: Delete a service\n0: Back\n";
+        $sessionDataArray[4] = 5;
+    }
+    writeFiles($fileName, changeToString($sessionDataArray));
+    exit();
+}
+// -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 if ($nextLevel === '9'){
-    // $inputArray = explode("*", $INPUT);
-    // $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
-
     if ($lastInput === "0"){
         echo "END Thank You for booking with us\n\nYou have cancelled the booking\n";
-        exit();
     }else if($lastInput === "1"){
         $rev_ID = mt_rand();
 
@@ -395,7 +470,7 @@ if ($nextLevel === '9'){
 
 if ($nextLevel === '10'){
     if (!is_string($lastInput)){
-        echo "CON Wrong input. \n Name should be letters only\n\n2:Back \n0:Exit";
+        echo "CON Wrong input\nName should be letters only\n\n2: Back \n0: Exit";
         $sessionDataArray[4] = 2;
         writeFiles($fileName, changeToString($sessionDataArray));
     }else{
@@ -405,13 +480,13 @@ if ($nextLevel === '10'){
         if ($stmt_upd_fName){
             echo "CON First Name Updated Succesfully\n1: Book a service\n2: Continue Updating\n0: Exit";
             $sessionDataArray[4] = 2;
-            writeFiles($fileName, changeToString($sessionDataArray));
+            // writeFiles($fileName, changeToString($sessionDataArray));
             // set_session_data($fileName,2);
         }else{
             echo "END Failed to update first name";
         }
         // $sessionDataArray[4] = 11;
-        // writeFiles($fileName, changeToString($sessionDataArray));
+        writeFiles($fileName, changeToString($sessionDataArray));
     }
     exit();
 }
@@ -420,9 +495,9 @@ if ($nextLevel === '10'){
 
 if ($nextLevel === '11'){
     if (!is_string($lastInput)){
-        echo "CON Wrong input. \n Name should be letters only\n\n2: Back \n0:Exit";
+        echo "CON Wrong input\nName should be letters only\n\n2: Back \n0: Exit";
         $sessionDataArray[4] = 2;
-        writeFiles($fileName, changeToString($sessionDataArray));
+        // writeFiles($fileName, changeToString($sessionDataArray));
     }else{
         $stmt_upd_lName = $pdo->prepare("UPDATE church_member SET lastName=? WHERE userID=?");
         $stmt_upd_lName->execute([$lastInput, $sessionDataArray[6]]);
@@ -430,13 +505,13 @@ if ($nextLevel === '11'){
         if ($stmt_upd_lName){
             echo "CON Last Name Updated Succesfully\n1: Book a service\n2: Continue Updating\n0: Exit";
             $sessionDataArray[4] = 2;
-            writeFiles($fileName, changeToString($sessionDataArray));
+            // writeFiles($fileName, changeToString($sessionDataArray));
         }else{
             echo "END Failed to update your Last Name";
         }
         // $sessionDataArray[4] = 11;
-        // writeFiles($fileName, changeToString($sessionDataArray));
     }
+    writeFiles($fileName, changeToString($sessionDataArray));
     exit();
 }
 // ----------------------------------------------------------------------------------------------------------------------------
@@ -450,19 +525,19 @@ if ($nextLevel === '12'){
 
             echo "CON Your email has been changed\n1: Book a service\n2: Continue Updating\n0: Exit";
             $sessionDataArray[4] = 2;
-            writeFiles($fileName, changeToString($sessionDataArray));
+            // writeFiles($fileName, changeToString($sessionDataArray));
         }else{
             echo "CON Wrong email format\n Use a valid email address";
             $sessionDataArray[4] = 12;
-            writeFiles($fileName, changeToString($sessionDataArray));
+            // writeFiles($fileName, changeToString($sessionDataArray));
         }
     }else{
         echo "CON Email cannot be empty\n3: Re-enter email address \n0: Exit";
         $sessionDataArray[4] = 4;
-        writeFiles($fileName, changeToString($sessionDataArray));
+        // writeFiles($fileName, changeToString($sessionDataArray));
     }
     // $sessionDataArray[4] = 11;
-    // writeFiles($fileName, changeToString($sessionDataArray));
+    writeFiles($fileName, changeToString($sessionDataArray));
     exit();
 }
 
