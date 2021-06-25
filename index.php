@@ -1,6 +1,11 @@
 <?php
 require 'fxnfile.php';
 
+$fatalLogs = str_ireplace("\\", "/", __DIR__) . '/logs/fatal.log';
+$sqlLogs = str_ireplace("\\", "/", __DIR__) . '/logs/sql.log';
+$infoLog = str_ireplace("\\", "/", __DIR__) . '/logs/info.log';
+$errorLog = str_ireplace("\\", "/", __DIR__) . '/logs/error.log';
+
 //Get the variables from the USSD gateway
 $SESSIONID = $_GET["SESSIONID"];
 $USSDCODE = rawurldecode($_GET["USSDCODE"]);
@@ -38,6 +43,7 @@ $fileName = $filePathDir."_". $SESSIONID . "_" . $MSISDN;
 if (!file_exists($fileName)){
     $sessionData = [$SESSIONID, $MSISDN, $USSDCODE, $INPUT, 1];
     writeFiles($fileName, changeToString($sessionData));
+    chmod($fileName, 0776);
 }else{
     $sessionData = readFiles($fileName);
 }
@@ -53,7 +59,7 @@ $inputArray = explode("*", $INPUT);
 $lastInput = trim($inputArray[sizeof($inputArray) - 1]);
 $sessionDataArray[3] = $lastInput;
 
-
+flog($infoLog, "Session: [$MSISDN] $SESSIONID | $nextLevel | $INPUT");
 // --------------------------------------------------------------------------------------------------------------------------------
 
 if ($nextLevel === '1'){
@@ -427,6 +433,14 @@ if ($nextLevel === '9'){
             $stmt_res->execute([$sessionDataArray[7], $rev_ID, $sessionDataArray[6]]);
             
             echo "END You have successfully booked for the service.\nYour reservation ID is $rev_ID\n";
+
+            $row_member = fetchDB('church_member', 'phone', $MSISDN)[0];
+            // $row_church = fetchDB('church_info', 'churchID', $sessionDataArray[5])[0];
+            $row_service = fetchDB('church_service', 'serviceID', $sessionDataArray[7])[0];
+
+            $sms_msg = "Hello, $row_member->firstName $row_member->lastName. You have successfully booked the '$row_service->serviceTheme' to be held on ".date('d M', strtotime($row_service->serviceDate))." from ".date('h:i a', strtotime($row_service->time_from))." to ".date('h:i a', strtotime($row_service->time_to))."\nYour reservation ID is $rev_ID";
+            // $churchName = $row_church->churchName;
+            send_sms(array('mobile'=>$MSISDN,'message'=>$sms_msg)); 
         }else{            
             echo "END You have already booked for this service";
         }

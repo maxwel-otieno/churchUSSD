@@ -374,7 +374,7 @@ if ($TEMPLEVEL == 2002) {
                 $row = mysqli_fetch_array($result); 
 
                 $sms_msg = "Dear " .get_session_data('names'). ",Your Service attendance Details:\nService Date: ".$row['service_date']."\nService Type: ".$row['type_name']."\nDay: ".$row['day_name'].".\nThank you.";
-                 send_sms(array('mobile'=>$MSISDN,'message'=>$sms_msg));  
+                send_sms(array('mobile'=>$MSISDN,'message'=>$sms_msg));  
                 
                 $message = "0|Your Service attendance Details:\nService Type: ".$row['type_name']."\nDay: ".$row['day_name']."\n\nThank you for Booking the Service.|null|null|end|null"; 
   

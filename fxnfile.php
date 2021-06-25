@@ -83,3 +83,63 @@ function deleteDB($table, $column, $ID){
     $stmt = $GLOBALS['pdo']->prepare("DELETE FROM $table WHERE $column = ?");
     $stmt->execute([$ID]);
 }
+
+function flog($file, $string, $logTitle = 'CUSTOM', $lineNo = '', $function = '') {
+    $date = date("Y-m-d H:i:s");
+    if ($fo = fopen($file, 'ab')) {
+        fwrite($fo, "$date - [ $logTitle ] :$lineNo $function | $string\n");
+        fclose($fo);
+    } else {
+        trigger_error("flog Cannot log '$string' to file '$file' ", E_USER_WARNING);
+    }
+}
+
+function send_sms($sms_data){
+    global $infoLog;
+    $api_key = (!empty($sms_data['api_key']))? $sms_data['api_key']:"FI69rM2L43OY7wKgki0bChuomEGUSecVJBQXDx8fjTdqaNPRvnzA1lyWs5pHtZ";
+    $shortcode = 'Tilil';
+    $serviceId = '0';
+
+    $smsdata = array(
+        'api_key' => $api_key,
+        'shortcode' => (!empty($sms_data['shortcode']))?$sms_data['shortcode']:$shortcode,
+    // 'shortcode' => $sms_data['shortcode'],
+        'mobile' => $sms_data['mobile'],
+        'message' => $sms_data['message'],
+        'service_id' => $serviceId,
+        'response_type' => "json",
+        );
+
+    $smsdata_string = json_encode($smsdata);
+    $smsURL = "https://api.tililtech.com/sms/v3/sendsms";
+    
+    $options = array(
+        'http' => array(
+        'header'  => "Content-type: application/json\r\n"."Content-Length: " . strlen($smsdata_string) . "\r\n",
+        'method'  => 'POST',
+        'content' => $smsdata_string,
+        ),
+    );
+    $context  = stream_context_create($options);
+    $apiresult = file_get_contents($smsURL, false, $context);
+
+    if (empty($apiresult)) { 
+        flog($errorLog, "[".$sms_data['mobile']."] sms: ERROR on URL[$smsURL] | error[" . curl_error($ch) . "] | error code[" . curl_errno($ch) . "]\n");    
+        // print_r($errorLog, "[".$sms_data['mobile']."] sms: ERROR on URL[$smsURL] | error[" . curl_error($ch) . "] | error code[" . curl_errno($ch) . "]\n");
+    }
+    else{
+        $arr_response = json_decode($apiresult,true);
+        $response_details =  $arr_response[0];
+
+        if(!empty($response_details['status_code']) && $response_details['status_code']!=='1000'){
+            //Failed
+            flog($infoLog, "[".$sms_data['mobile']."] sms: $apiresult");    
+            // print_r($infoLog, "[".$sms_data['mobile']."] sms: $apiresult");
+        }else{
+            //Success
+            flog($infoLog, "[".$sms_data['mobile']."] sms: $apiresult");  
+            // print_r($infoLog, "[".$sms_data['mobile']."] sms: $apiresult");
+        }
+    }
+   
+}
