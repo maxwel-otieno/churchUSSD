@@ -216,6 +216,9 @@ if ($nextLevel === '3'){
 
 if ($nextLevel === '4'){
     //UserID = $sessionDataArray[6]
+    $row = fetchDB('church_member', 'phone', $MSISDN)[0];
+    $churchID = $row->churchID;
+    $row_church = fetchDB('church_info', 'churchID', $churchID)[0];
     $churchName = $row_church->churchName;
     $userName = $row->firstName." ".$row->lastName;
 
@@ -263,7 +266,7 @@ if ($nextLevel === '5'){
 
     if ($lastInput == 1){
         if ($reservation4UsrCount <= 0){
-            echo "CON You have not booked for any service yet\n1: Book Service\n2: Update Settings\n";
+            echo "CON You have not booked for any service yet\n1: Book Service\n2: Update Settings\n0:Exit\n";
             $sessionDataArray[4] = 2;
             // writeFiles($fileName, changeToString($sessionDataArray));
         }else{
@@ -330,7 +333,7 @@ if ($nextLevel === '5'){
 
         $churchName = $row_church->churchName;
         $userName = $row->firstName." ".$row->lastName;
-        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3: My Services\n";
+        echo "CON Hello $userName\nWelcome to $churchName service system:\n1: Book Service\n2: Update Settings\n3: My Services\n0:Exit";
         $sessionDataArray[4] = 2;
         // echo "CON You will exit from the system";
     }else{
